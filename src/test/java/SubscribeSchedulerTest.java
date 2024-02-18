@@ -52,7 +52,7 @@ public class SubscribeSchedulerTest {
     }
 
     /**
-     * 使用mono.zip 可以让两个mono并行执行起来
+     * 使用mono.zip 应该可以让两个mono并行执行起来, 实际上没有并行起来，不知道为啥？ 后续研究...
      */
     @Test
     void testMonoZip() throws ExecutionException, InterruptedException {
