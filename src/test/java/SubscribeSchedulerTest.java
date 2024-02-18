@@ -5,6 +5,7 @@ import reactor.util.function.Tuple2;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class SubscribeSchedulerTest {
     /**
@@ -39,55 +40,4 @@ public class SubscribeSchedulerTest {
                 .subscribe(str -> System.out.println(str + Thread.currentThread().getName()));
     }
 
-    /**
-     * mono只有在block的时候才会执行真正执行，因此下面的两个block是串行执行的
-     */
-    @Test
-    void testMonoBlock() throws ExecutionException, InterruptedException {
-        Long start = System.currentTimeMillis();
-        Mono<String> result1 = caller1();
-        Mono<String> result2 = caller2();
-        System.out.println(result1.block() +":" +  result2.block());
-        System.out.println("time cost:" + (System.currentTimeMillis() - start));//耗时 4s+
-    }
-
-    /**
-     * 使用mono.zip 应该可以让两个mono并行执行起来, 实际上没有并行起来，不知道为啥？ 后续研究...
-     */
-    @Test
-    void testMonoZip() throws ExecutionException, InterruptedException {
-        Long start = System.currentTimeMillis();
-        //
-        Mono<String> result1 = caller1();
-        Mono<String> result2 = caller2();
-
-        Mono<Tuple2<String, String>> result = Mono.zip(result1, result2);
-        Tuple2<String, String> tuple2 = result.block();
-        System.out.println("time cost:" + (System.currentTimeMillis() - start)); //耗时 2s+
-    }
-
-    Mono<String> caller1 () throws ExecutionException, InterruptedException {
-        CompletableFuture<Mono<String>> result = CompletableFuture.supplyAsync(() -> {
-            sleep(2000);
-            System.out.println( "caller1 is in : " + Thread.currentThread().getName());
-            return Mono.just("response1");
-        });
-        return result.get();
-    }
-    Mono<String> caller2 () throws ExecutionException, InterruptedException {
-        CompletableFuture<Mono<String>> result = CompletableFuture.supplyAsync(() -> {
-            sleep(2000);
-            System.out.println( "caller2 is in : " + Thread.currentThread().getName());
-            return Mono.just("response1");
-        });
-        return result.get();
-    }
-
-    void sleep(long seconds) {
-        try {
-            Thread.sleep(seconds);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-    }
 }

@@ -69,10 +69,16 @@
       <version>2.1</version>
     </dependency>
     <dependency>
-      <groupId>org.jboss.resteasy</groupId>
-      <artifactId>resteasy-jaxrs</artifactId>
-      <version>3.16.1</version>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-webflux</artifactId>
+      <version>5.3.13</version> <!-- 此处的版本号可能需要根据你的项目实际情况调整 -->
     </dependency>
+    <dependency>
+      <groupId>io.projectreactor.netty</groupId>
+      <artifactId>reactor-netty</artifactId>
+      <version>1.0.13</version> <!-- 此处的版本号可能需要根据你的项目实际情况调整 -->
+    </dependency>
+
 
   </dependencies>
 </project>
