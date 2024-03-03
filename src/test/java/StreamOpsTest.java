@@ -11,6 +11,9 @@ import java.util.function.Consumer;
 
 @Slf4j
 public class StreamOpsTest {
+    /**
+     * just 创建流
+     */
     @Test
     public void subscribeMethod() {
         Flux<String> stockReq = Flux.just("A", "B", "C");
@@ -19,6 +22,9 @@ public class StreamOpsTest {
                 .subscribe();//没有任何参数表明不对流做任何操作
     }
 
+    /**
+     * range创建流
+     */
     @Test
     public void subscribeWithErrorConsumer() {
         Flux<Integer> stockReq = Flux.range(1, 5).map(x -> {
@@ -32,6 +38,9 @@ public class StreamOpsTest {
         );
     }
 
+    /**
+     * 自定义subscriber
+     */
     @Test
     public void subscribeWithCustomizedSubscriber() {
         Flux flux = Flux.range(1, 5);
@@ -80,6 +89,10 @@ public class StreamOpsTest {
             super.hookFinally(type);
         }
     }
+
+    /**
+     * 按批次处理元素
+     */
     @Test
     void streamBuffer() {
         Flux<Integer> flux = Flux.range(1, 40);
@@ -88,6 +101,9 @@ public class StreamOpsTest {
         buffer.log().subscribe();
     }
 
+    /**
+     * 从一个suplier创建流
+     */
     @Test
     void streamRetry() {
         Mono<String> client = Mono.fromSupplier(() -> {
@@ -100,6 +116,9 @@ public class StreamOpsTest {
         client.log().retry(3).subscribe();
     }
 
+    /**
+     * 将两个流合并
+     */
     @Test
     void streamZip() {
         Flux<Integer> fluxA = Flux.range(1,4);

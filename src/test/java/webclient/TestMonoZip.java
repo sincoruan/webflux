@@ -4,6 +4,8 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
 
+import java.time.Duration;
+import java.time.temporal.TemporalUnit;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -13,12 +15,13 @@ public class TestMonoZip {
     ExecutorService executorService = Executors.newFixedThreadPool(10);
     /**
      * mono只有在block的时候才会执行真正执行，因此下面的两个block是串行执行的
+     * 耗时： ~4s
      */
     @Test
     void testMonoBlock() throws ExecutionException, InterruptedException {
         Long start = System.currentTimeMillis();
-        Mono<String> result1 = caller1();
-        Mono<String> result2 = caller2();
+        Mono<String> result1 = callerAsync1();
+        Mono<String> result2 = callerAsync2();
         print(result1.block(), result2.block());
         System.out.println("time cost:" + (System.currentTimeMillis() - start));//耗时 4s+
     }
@@ -27,52 +30,42 @@ public class TestMonoZip {
     }
 
     /**
-     * 使用mono.zip 应该可以让两个mono并行执行起来, 实际上没有并行起来，不知道为啥？ 后续研究...
+     * 使用mono.zip 可以让两个mono并行执行起来
+     * 耗时： ~2s
      */
     @Test
     void testMonoZip() {
         Long start = System.currentTimeMillis();
-        //
-        Mono<String> result1 = caller1();
-        Mono<String> result2 = caller2();
-
-        // 为啥下面的code会阻塞导致串行？ 是因为callerSync1/callerSync2是在主线程睡的
-//        Mono<String> result1 = callerSync1();
-//        Mono<String> result2 = callerSync2();
+        Mono<String> result1 = callerAsync1();
+        Mono<String> result2 = callerAsync2();
         Mono<Tuple2<String, String>> result = Mono.zip(result1, result2);
         Tuple2<String, String> tuple2 = result.block();
         System.out.println("time cost:" + (System.currentTimeMillis() - start)); //耗时 2s+
     }
-    Mono<String> caller1() {
-        return Mono.fromFuture(CompletableFuture.supplyAsync(() -> {
-            System.out.println("start call1");
-            sleep(2000);
-            System.out.println("caller1 is in : " + Thread.currentThread().getName());
-            return "response1";
-        }, executorService));
+
+    /**
+     * 使用CompletableFuture将两个流并发执行起来，达到了类似Mono.zip的效果
+     * 耗时： ~2s
+     */
+    @Test
+    void testMonoWithCompletableFuture() throws ExecutionException, InterruptedException {
+        Long start = System.currentTimeMillis();
+        CompletableFuture<String> completableFuture1 = CompletableFuture.supplyAsync(() -> callerAsync1().block());
+        CompletableFuture<String> completableFuture2 = CompletableFuture.supplyAsync(() -> callerAsync1().block());
+        completableFuture1.get();
+        completableFuture2.get();
+        System.out.println("time cost:" + (System.currentTimeMillis() - start)); //耗时 2s+
     }
 
-    Mono<String> caller2() {
-        return Mono.fromFuture(CompletableFuture.supplyAsync(() -> {
-            System.out.println("start call2");
-            sleep(2000);
-            System.out.println("caller2 is in : " + Thread.currentThread().getName());
-            return "response2";
-        }, executorService));
+
+    Mono<String> callerAsync1() {
+        //             sleep(2000);  //不能用sleep，如果使用sleep的话会导致主线程在睡，而不是mono中delay
+        return Mono.just("response1").delayElement(Duration.ofSeconds(2));
     }
 
-    Mono<String> callerSync1() {
-        System.out.println("start call1");
-        sleep(2000);
-        System.out.println("caller1 is in : " + Thread.currentThread().getName());
-        return Mono.just("response2");
-    }
-
-    Mono<String> callerSync2() {
-            System.out.println("start call2");
-            sleep(2000);
-            System.out.println("caller2 is in : " + Thread.currentThread().getName());
-            return Mono.just("response2");
+    Mono<String> callerAsync2() {
+        //             sleep(2000);  //不能用sleep，如果使用sleep的话会导致主线程在睡，而不是mono中delay
+        return Mono.just("response2").delayElement(Duration.ofSeconds(2));
     }
 
     void sleep(long seconds) {
